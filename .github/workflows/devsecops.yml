@@ -46,7 +46,6 @@ jobs:
           format: 'HTML'
           out: 'reports'
 
-      # Upload the HTML report as artifact
       - name: Upload Dependency-Check report
         uses: actions/upload-artifact@v4
         with:
