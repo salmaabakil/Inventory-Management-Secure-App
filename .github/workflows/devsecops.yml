@@ -38,8 +38,8 @@ jobs:
       - name: OWASP Dependency Check
         uses: dependency-check/Dependency-Check_Action@main
         env:
-          # IMPORTANT: Dependency-Check runs in a container that expects Java here
           JAVA_HOME: /opt/jdk
+          JAVA_HOME_17_X64: /opt/jdk
         with:
           project: 'Ecommerce'
           path: 'backend'
