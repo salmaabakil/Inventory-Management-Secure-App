@@ -6,51 +6,75 @@ on:
   pull_request:
     branches: [ "main" ]
 
+permissions:
+  contents: read
+
 jobs:
   security-scan:
     name: Security & Quality
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-    - name: Set up JDK 17
-      uses: actions/setup-java@v4
-      with:
-        java-version: '17'
-        distribution: 'temurin'
-        cache: 'maven'
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: 'maven'
 
-    - name: Debug pom.xml paths
-      run: |
-        find . -name "pom.xml" -print
+      - name: Debug pom.xml paths
+        run: |
+          find . -name "pom.xml" -print
 
-    # 1. Build Services
-    - name: Build with Maven
-      run: |
-        mvn -B package --file backend/product-service/pom.xml
-        mvn -B package --file backend/order-service/pom.xml
+      # 1. Build Services
+      - name: Build with Maven
+        run: |
+          mvn -B package --file backend/product-service/pom.xml
+          mvn -B package --file backend/order-service/pom.xml
 
-    # 2. OWASP Dependency Check (scan backend only)
-    - name: OWASP Dependency Check
-      uses: dependency-check/Dependency-Check_Action@main
-      with:
-        project: 'Ecommerce'
-        path: 'backend'
-        format: 'HTML'
+      # 2. OWASP Dependency Check (scan backend only)
+      - name: OWASP Dependency Check
+        uses: dependency-check/Dependency-Check_Action@main
+        env:
+          JAVA_HOME: ""
+          JAVA_HOME_17_X64: ""
+        with:
+          project: 'Ecommerce'
+          path: 'backend'
+          format: 'HTML'
+          out: 'reports'
 
-    # 3. Docker Build & Trivy Scan
-    - name: Build Docker Images
-      run: |
-        docker build -t msvc-product backend/product-service
-        docker build -t msvc-order backend/order-service
+      # Upload the HTML report as artifact
+      - name: Upload Dependency-Check report
+        uses: actions/upload-artifact@v4
+        with:
+          name: dependency-check-report
+          path: reports
 
-    - name: Run Trivy vulnerability scanner
-      uses: aquasecurity/trivy-action@master
-      with:
-        image-ref: 'msvc-product'
-        format: 'table'
-        exit-code: '0'
-        ignore-unfixed: true
-        vuln-type: 'os,library'
-        severity: 'CRITICAL,HIGH'
+      # 3. Docker Build & Trivy Scan
+      - name: Build Docker Images
+        run: |
+          docker build -t msvc-product backend/product-service
+          docker build -t msvc-order backend/order-service
+
+      - name: Run Trivy vulnerability scanner (msvc-product)
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: 'msvc-product'
+          format: 'table'
+          exit-code: '0'
+          ignore-unfixed: true
+          vuln-type: 'os,library'
+          severity: 'CRITICAL,HIGH'
+
+      - name: Run Trivy vulnerability scanner (msvc-order)
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: 'msvc-order'
+          format: 'table'
+          exit-code: '0'
+          ignore-unfixed: true
+          vuln-type: 'os,library'
+          severity: 'CRITICAL,HIGH'
