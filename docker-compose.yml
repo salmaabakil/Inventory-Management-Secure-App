@@ -1,0 +1,101 @@
+version: '3.8'
+
+services:
+  # --- Infrastructure ---
+  postgres:
+    image: postgres:15
+    container_name: msvc-postgres
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: password
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./docker/init-db:/docker-entrypoint-initdb.d
+    ports:
+      - "5432:5432"
+    networks:
+      - msvc-network
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:23.0.0
+    container_name: msvc-keycloak
+    environment:
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: admin
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://postgres:5432/keycloak
+      KC_DB_USERNAME: admin
+      KC_DB_PASSWORD: password
+      KC_HOSTNAME: localhost # Simplified for local dev
+    command: start-dev
+    ports:
+      - "8080:8080"
+    depends_on:
+      - postgres
+    networks:
+      - msvc-network
+
+  # --- Backend Services ---
+  gateway-service:
+    build: ./backend/gateway-service
+    container_name: msvc-gateway
+    ports:
+      - "9090:9090"
+    environment:
+      # Issuer URI must match what the Frontend sees (localhost)
+      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI: http://localhost:8080/realms/ecommerce
+      # JWK Set URI must be the internal Docker address for the backend to fetch keys
+      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI: http://keycloak:8080/realms/ecommerce/protocol/openid-connect/certs
+    depends_on:
+      - keycloak
+      - product-service
+      - order-service
+    networks:
+      - msvc-network
+
+  product-service:
+    build: ./backend/product-service
+    container_name: msvc-product
+    ports:
+      - "8081:8081"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/product_db
+      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI: http://localhost:8080/realms/ecommerce
+      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI: http://keycloak:8080/realms/ecommerce/protocol/openid-connect/certs
+    depends_on:
+      - postgres
+      - keycloak
+    networks:
+      - msvc-network
+
+  order-service:
+    build: ./backend/order-service
+    container_name: msvc-order
+    ports:
+      - "8082:8082"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/order_db
+      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI: http://localhost:8080/realms/ecommerce
+      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI: http://keycloak:8080/realms/ecommerce/protocol/openid-connect/certs
+    depends_on:
+      - postgres
+      - keycloak
+    networks:
+      - msvc-network
+
+  # --- Frontend ---
+  frontend:
+    build: ./frontend
+    container_name: msvc-frontend
+    ports:
+      - "3000:80"
+    networks:
+      - msvc-network
+
+volumes:
+  postgres_data:
+
+
+networks:
+  msvc-network:
+    driver: bridge
