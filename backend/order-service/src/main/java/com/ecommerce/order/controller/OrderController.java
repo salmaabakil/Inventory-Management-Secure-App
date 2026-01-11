@@ -43,7 +43,7 @@ public class OrderController {
     @PostMapping
     public ResponseEntity<Order> createOrder(@RequestBody List<OrderItem> items, @AuthenticationPrincipal Jwt jwt) {
         Order order = new Order();
-        order.setUserId(jwt.getSubject()); // Set User ID from Token
+        order.setUserId(jwt.getSubject());
 
         List<OrderItem> orderItems = new ArrayList<>();
         double totalAmount = 0.0;
@@ -60,7 +60,6 @@ public class OrderController {
                         "Insufficient stock for product: " + product.getName());
             }
 
-            // In a real app, we would decrement stock here via API call to ProductService
             productClient.reduceStock(product.getId(), itemRequest.getQuantity());
 
             OrderItem item = new OrderItem(product.getId(), itemRequest.getQuantity(), product.getPrice());

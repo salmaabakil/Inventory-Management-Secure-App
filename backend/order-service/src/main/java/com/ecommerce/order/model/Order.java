@@ -5,13 +5,13 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 @Entity
-@Table(name = "orders") // 'order' is a reserved keyword in SQL
+@Table(name = "orders")
 public class Order {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private String userId; // From Keycloak Token
+    private String userId;
     private LocalDateTime orderDate;
     private String status;
     private Double totalAmount;

@@ -6,7 +6,7 @@ import jakarta.persistence.Embeddable;
 public class OrderItem {
     private Long productId;
     private Integer quantity;
-    private Double price; // Snapshot price at time of order
+    private Double price;
 
     public OrderItem() {
     }
