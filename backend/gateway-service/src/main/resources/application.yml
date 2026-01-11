@@ -8,9 +8,7 @@ spring:
   cloud:
     gateway:
       default-filters:
-        # Dédoublonne les headers CORS quand gateway + microservices les ajoutent
         - DedupeResponseHeader=Access-Control-Allow-Credentials Access-Control-Allow-Origin, RETAIN_FIRST
-        # Optionnel mais souvent utile
         - DedupeResponseHeader=Vary, RETAIN_FIRST
 
       globalcors:
@@ -34,7 +32,6 @@ spring:
               - Origin
             exposedHeaders:
               - Authorization
-            # ✅ Recommandé si tu utilises juste Bearer token (Authorization)
             allowCredentials: false
             maxAge: 3600
 
