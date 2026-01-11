@@ -29,7 +29,6 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
 
                 .authorizeHttpRequests(auth -> auth
-                        // ✅ endpoints protégés (ajuste selon ton besoin)
                         .requestMatchers("/api/products/**").authenticated()
 
                         .anyRequest().permitAll())
@@ -46,7 +45,6 @@ public class SecurityConfig {
         return converter;
     }
 
-    // Converter to extract Keycloak roles from "realm_access" claim
     public static class KeycloakRoleConverter implements Converter<Jwt, Collection<GrantedAuthority>> {
         @Override
         @SuppressWarnings("unchecked")
